@@ -3,8 +3,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from sksurv.datasets import load_veterans_lung_cancer
-from sksurv.linear_model import CoxPHSurvivalAnalysis
+from sksurv.linear_model import CoxnetSurvivalAnalysis
 from sksurv.preprocessing import OneHotEncoder
+from sksurv.metrics import integrated_brier_score
 
 # Data
 data_x, data_y = load_veterans_lung_cancer()
@@ -15,7 +16,7 @@ print(data_y)
 
 
 # Fit
-estimator = CoxPHSurvivalAnalysis()
+estimator = CoxnetSurvivalAnalysis(fit_baseline_model=True)
 estimator.fit(data_x_numeric, data_y)
 
 # New dataset
@@ -29,6 +30,7 @@ x_new = pd.DataFrame.from_dict(
     columns=data_x_numeric.columns,
     orient="index",
 )
+y_new = data_y[:4]
 
 # Holdout pred
 pred_surv = estimator.predict_survival_function(x_new)
@@ -43,3 +45,9 @@ plt.ylabel(r"est. probability of survival $\hat{S}(t)$")
 plt.xlabel("time $t$")
 plt.legend(loc="best")
 plt.show()
+
+
+times = np.arange(100, 400)
+preds = np.asarray([[fn(t) for t in times] for fn in pred_surv])
+score = integrated_brier_score(y_new, y_new, preds, times)
+print(score)
